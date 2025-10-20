@@ -1,0 +1,179 @@
+'use client'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
+import { FormEvent } from 'react'
+import { useState } from "react";
+import { useRouter } from "next/navigation"
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState("login");
+  const router = useRouter();
+
+  function handleTabChange(value: string) {
+    setActiveTab(value);
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    console.log("Submitting form...");
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
+    const endpoint = activeTab === "login" ? "/auth/login" : "/auth/register";
+    const url = `${baseUrl}${endpoint}`;
+    
+    console.log("Making request to:", url);
+    
+    try {
+      // Convert FormData to JSON for better compatibility
+      const formDataObj: Record<string, string> = {};
+      formData.forEach((value, key) => {
+        formDataObj[key] = value.toString();
+      });
+      
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify(formDataObj),
+        mode: 'cors', // Enable CORS
+      });
+      
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("Response data:", data);
+      
+      if (data.success) {
+        router.push("/dashboard");
+      } else {
+        // Handle error
+        return alert(data.message || "Login failed");
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+      alert(`Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}. Make sure your backend server is running on ${baseUrl}`);
+    }
+  }
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center h-full w-full">
+        <Tabs defaultValue="login" onValueChange={handleTabChange}>
+        <TabsList>
+          <TabsTrigger value="login">Login</TabsTrigger>
+          <TabsTrigger value="signup">Sign Up</TabsTrigger>
+        </TabsList>
+        <TabsContent value="login">
+        <Card className="w-full max-w-sm">
+      <CardHeader>
+        <CardTitle>Login to your account</CardTitle>
+        <CardDescription>
+          Enter your email below to login to your account
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={onSubmit}>
+      <CardContent>
+          <div className="flex flex-col gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="m@example.com"
+                required  
+              />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="password">Password</Label>
+                <a
+                  href="#"
+                  className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                >
+                  Forgot your password?
+                </a>
+              </div>
+              <Input id="key" name="key" type="password" required />
+            </div>
+          </div>
+      </CardContent>
+      <CardFooter className="flex-col gap-2">
+        <Button type="submit" className="w-full">
+          Login
+        </Button>
+      </CardFooter>
+      </form>
+    </Card>
+        </TabsContent>
+        <TabsContent value="signup">
+        <Card className="w-full max-w-sm">
+      <CardHeader>
+        <CardTitle>Create new account</CardTitle>
+        <CardDescription>
+          Enter your email below to create a new account
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={onSubmit}>
+      <CardContent>
+          <div className="flex flex-col gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="signup-fullname">Full Name</Label>
+              <Input
+                id="signup-fullname"
+                name="name"
+                type="text"
+                placeholder="John Doe"
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="signup-email">Email</Label>
+              <Input
+                id="signup-email"
+                name="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="signup-password">Password</Label>
+              </div>
+              <Input id="key" name="key" type="password" required />
+            </div>
+          </div>
+      </CardContent>
+      <CardFooter className="flex-col gap-2">
+        <Button type="submit" className="w-full">
+          Sign Up
+        </Button>
+      </CardFooter>
+      </form>
+    </Card>
+        </TabsContent>
+      </Tabs>
+    </main>
+  );
+}

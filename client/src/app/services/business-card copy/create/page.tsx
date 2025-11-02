@@ -132,9 +132,9 @@ END:VCARD`;
   }} />
         </div>
       </div>
-      
+      {/* Form Section */}
         {/* Content Section */}
-        {currentStep == 'contents' && (
+        {currentStep == 'content' && (
       <div className="w-full p-6 bg-white rounded-lg shadow-xl flex flex-col h-full max-h-full min-w-fit">
         <h2 className="text-2xl font-semibold mb-4">
           Create Your Business Card
@@ -236,7 +236,7 @@ END:VCARD`;
       </div>
         )}
         {/* Styling Section */}
-        {currentStep == 'stylings' && (
+        {currentStep == 'styling' && (
       <div className="w-full p-6 bg-white rounded-lg shadow-xl flex flex-col h-full max-h-full">
         <div className="flex flex-row justify-between items-center h-fit">
         <h2 className="text-2xl font-semibold mb-4">

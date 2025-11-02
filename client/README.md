@@ -6,7 +6,6 @@ A modern, responsive business card creator built with Next.js, TypeScript, and T
 
 ### 🎨 **Card Customization**
 - **4 Card Styles**: Modern, Classic, Minimal, Creative
-- **5 Color Schemes**: Professional Blue, Nature Green, Creative Purple, Energetic Orange, Classic Black
 - **3 Font Styles**: Sans Serif, Serif, Monospace
 - **Custom Background Colors**: Dynamic color picker with real-time preview
 - **Border Styling**: Dynamic border effects based on card style
@@ -192,4 +191,4 @@ If you encounter any issues or have questions:
 
 ---
 
-Built with ❤️ using Next.js, TypeScript, and Tailwind CSS
+Built with using Next.js, TypeScript, and Tailwind CSS

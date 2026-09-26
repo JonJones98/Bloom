@@ -138,10 +138,10 @@ export default function Home() {
              </PopoverTrigger>
              <PopoverContent>
                <div className="flex flex-col gap-2">
-                   <Link href="/services/resume/create" className="hover:bg-gray-100 p-2 rounded">Resume</Link>
-                   <Link href="/services/business-card/create" className="hover:bg-gray-100 p-2 rounded">Business Card</Link>
-                   <Link href="/services/budget/create" className="hover:bg-gray-100 p-2 rounded">Budget</Link>
-                   <Link href="/services/business-plan/create" className="hover:bg-gray-100 p-2 rounded">Business Plan</Link>
+                   <Link href="/services/resume/create" className="p-2 rounded transition-colors hover:bg-[#FEBC2F]/15">Resume</Link>
+                   <Link href="/services/business-card/create" className="p-2 rounded transition-colors hover:bg-[#719169]/15">Business Card</Link>
+                   <Link href="/services/budget/create" className="p-2 rounded transition-colors hover:bg-[#8C7BF9]/15">Budget</Link>
+                   <Link href="/services/business-plan/create" className="p-2 rounded transition-colors hover:bg-[#F56849]/15">Business Plan</Link>
                </div>
              </PopoverContent>
       </Popover>
@@ -149,22 +149,22 @@ export default function Home() {
       <div className=" flex flex-row gap-4 w-full h-full">
         <div className="flex flex-col h-full gap-4 w-1/4">
            <div className="w-full h-full shadow-lg flex items-center justify-center rounded-md">
-           <Button variant={"outline"} asChild className="w-full h-full">
+             <Button variant={"outline"} asChild className="w-full h-full transition-all hover:bg-[#FEBC2F]/15 hover:shadow-[0_0_18px_2px_rgba(254,188,47,0.45)]">
                <Link href="/services/resume">Resume</Link>
            </Button>
            </div>
            <div className="min-w-fit w-full h-full shadow-lg flex items-center justify-center rounded-md">
-           <Button variant={"outline"} asChild className="w-full h-full">
+             <Button variant={"outline"} asChild className="w-full h-full transition-all hover:bg-[#719169]/15 hover:shadow-[0_0_18px_2px_rgba(113,145,105,0.45)]">
                <Link href="/services/business-card">Business Card</Link>
            </Button>
            </div>
            <div className="min-w-fit w-full h-full shadow-lg flex items-center justify-center rounded-md">
-           <Button variant={"outline"} asChild className="w-full h-full">
+             <Button variant={"outline"} asChild className="w-full h-full transition-all hover:bg-[#8C7BF9]/15 hover:shadow-[0_0_18px_2px_rgba(140,123,249,0.45)]">
                <Link href="/services/budget">Budget</Link>
            </Button>
            </div>
            <div className="min-w-fit w-full h-full shadow-lg flex items-center justify-center rounded-md">
-           <Button variant={"outline"} asChild className="w-full h-full">
+             <Button variant={"outline"} asChild className="w-full h-full transition-all hover:bg-[#F56849]/15 hover:shadow-[0_0_18px_2px_rgba(245,104,73,0.45)]">
                <Link href="/services/business-plan">Business Plan</Link>
            </Button>
         </div>

@@ -5,7 +5,6 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "./ui/button";
 import html2canvas from 'html2canvas';
 import { useBusinessCardForm } from "@/contexts/business-card-form-context";
-import Image from "next/image";
 
 type PreviewData = {
   name?: string;
@@ -39,6 +38,7 @@ export function Preview_Business_Card({ data = {} }: { data?: PreviewData }) {
   const [editLink, setEditLink] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 const { 
     formData,
     updateFormData
@@ -91,45 +91,83 @@ useEffect(() => {
   const handleMouseUp = () => {
     setIsDragging(false);
   };
+
+  const handleSliderRotate = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nextRotation = Number(e.target.value);
+    setRotationY(nextRotation);
+    setIsDragging(false);
+  };
+
   const handleCardReset = () =>{
     setRotationY(0);
     setIsDragging(false);
     setDragStart({ x: 0, y: 0 });
   }
-  const isPreviewRender=true
-  const cardStyle = 'classic'
-  const colorScheme = 'orange'
-  const fontStyle = 'sans'
-  const backgroundStyle = ['color', '#f0f0f0']
-  const borderStyle = '#0cd4bd';
+  const effectiveData = {
+    ...formData,
+    ...data,
+  };
+
+  const colorSchemeConfig: Record<NonNullable<PreviewData["colorScheme"]>, { tint: string; text: string }> = {
+    blue: { tint: "#3b82f6", text: "#0f172a" },
+    green: { tint: "#15803d", text: "#102114" },
+    purple: { tint: "#7c3aed", text: "#1f1536" },
+    orange: { tint: "#ea580c", text: "#2a1405" },
+    black: { tint: "#111827", text: "#111111" },
+  };
+
+  const activeScheme = colorSchemeConfig[effectiveData.colorScheme || "orange"];
+  const resolvedBorderColor = effectiveData.borderStyle || activeScheme.tint;
   
   
   const handleDownloadImage = async () => {
     if (!cardRef.current) return;
+    const cardEl = cardRef.current;
+
+    const originalTransform = cardEl.style.transform;
+    const originalWidth = cardEl.style.width;
+    const originalHeight = cardEl.style.height;
+    const originalBackgroundImage = cardEl.style.backgroundImage;
+    const originalBackgroundColor = cardEl.style.backgroundColor;
+    const originalBackgroundSize = cardEl.style.backgroundSize;
+    const originalBackgroundPosition = cardEl.style.backgroundPosition;
+    const originalBackgroundRepeat = cardEl.style.backgroundRepeat;
+    const originalBackgroundBlendMode = cardEl.style.backgroundBlendMode;
+    const originalFilter = cardEl.style.filter;
     
     try {
-      // Reset any transforms before capturing
-      const originalTransform = cardRef.current.style.transform;
-      const originalWidth = cardRef.current.style.width;
-      const originalHeight = cardRef.current.style.height;
+      setIsExporting(true);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+
+      const exportBackground = getBackgroundStyle();
       
       // Temporarily set to fixed size for high-quality capture
-      cardRef.current.style.transform = 'none';
-      cardRef.current.style.width = '500px';
-      cardRef.current.style.height = '285px';
+      cardEl.style.transform = 'none';
+      cardEl.style.width = '500px';
+      cardEl.style.height = '285px';
+      cardEl.style.filter = 'none';
+      cardEl.style.backgroundBlendMode = 'normal';
+
+      if ("backgroundImage" in exportBackground && exportBackground.backgroundImage) {
+        cardEl.style.backgroundImage = exportBackground.backgroundImage as string;
+        cardEl.style.backgroundSize = (exportBackground.backgroundSize as string) || 'cover';
+        cardEl.style.backgroundPosition = (exportBackground.backgroundPosition as string) || 'center';
+        cardEl.style.backgroundRepeat = 'no-repeat';
+      } else {
+        cardEl.style.backgroundImage = 'none';
+        cardEl.style.backgroundColor =
+          ("backgroundColor" in exportBackground && exportBackground.backgroundColor
+            ? exportBackground.backgroundColor
+            : '#f0f0f0') as string;
+      }
       
       // Configure html2canvas options for high quality
-      const canvas = await html2canvas(cardRef.current, {
+      const canvas = await html2canvas(cardEl, {
         useCORS: true,
         allowTaint: true,
         width: 500,
         height: 285,
       });
-      
-      // Restore original styles
-      cardRef.current.style.transform = originalTransform;
-      cardRef.current.style.width = originalWidth;
-      cardRef.current.style.height = originalHeight;
       
       // Create download link
       const link = document.createElement('a');
@@ -144,6 +182,18 @@ useEffect(() => {
       console.log('Business card downloaded successfully!');
     } catch (error) {
       console.error('Error downloading business card:', error);
+    } finally {
+      cardEl.style.transform = originalTransform;
+      cardEl.style.width = originalWidth;
+      cardEl.style.height = originalHeight;
+      cardEl.style.backgroundImage = originalBackgroundImage;
+      cardEl.style.backgroundColor = originalBackgroundColor;
+      cardEl.style.backgroundSize = originalBackgroundSize;
+      cardEl.style.backgroundPosition = originalBackgroundPosition;
+      cardEl.style.backgroundRepeat = originalBackgroundRepeat;
+      cardEl.style.backgroundBlendMode = originalBackgroundBlendMode;
+      cardEl.style.filter = originalFilter;
+      setIsExporting(false);
     }
   };
   const handleRotateImage = () => {
@@ -166,28 +216,58 @@ useEffect(() => {
     }
     return baseClasses;
   };
+  const normalizedTilt = Math.max(-1, Math.min(1, rotationY / 30));
+  const getEdgeWidths = () => {
+    switch (effectiveData.cardStyle) {
+      case 'modern':
+        return {
+          top: 0,
+          bottom: 0,
+          left: Math.max(1, 4 - normalizedTilt * 2.2),
+          right: Math.max(0.4, 0.8 + normalizedTilt * 1.8),
+        };
+      case 'classic':
+        return {
+          top: 4,
+          bottom: 4,
+          left: Math.max(1.8, 4 - normalizedTilt * 2.2),
+          right: Math.max(1.8, 4 + normalizedTilt * 2.2),
+        };
+      case 'minimal':
+      case 'creative':
+        return {
+          top: 2,
+          bottom: 2,
+          left: Math.max(0.8, 2 - normalizedTilt * 1.4),
+          right: Math.max(0.8, 2 + normalizedTilt * 1.4),
+        };
+      default:
+        return { top: 0, bottom: 0, left: 0, right: 0 };
+    }
+  };
   const getBorderStyle = (): React.CSSProperties => {
-    if (formData.borderStyle === '') {
+    if (!resolvedBorderColor) {
       return { borderWidth: '0px', borderStyle: 'solid' };
     }
     else{
-    let borderconfig: React.CSSProperties = { borderWidth: '2px', borderStyle: 'dashed', borderColor: formData.borderStyle || "#000000" };
+    const edgeWidths = getEdgeWidths();
+    let borderconfig: React.CSSProperties = { borderWidth: '2px', borderStyle: 'dashed', borderColor: resolvedBorderColor };
     // Card style variations
-    switch (formData.cardStyle) {
+    switch (effectiveData.cardStyle) {
       case 'modern':
         borderconfig = {
-          borderTopWidth: '0px',
-          borderRightWidth: '0px',
-          borderBottomWidth: '0px',
-          borderLeftWidth: '4px',
+          borderTopWidth: `${edgeWidths.top}px`,
+          borderRightWidth: `${edgeWidths.right}px`,
+          borderBottomWidth: `${edgeWidths.bottom}px`,
+          borderLeftWidth: `${edgeWidths.left}px`,
           borderTopStyle: 'solid',
           borderRightStyle: 'solid',
           borderBottomStyle: 'solid',
           borderLeftStyle: 'solid',
           borderTopColor: 'transparent',
-          borderRightColor: 'transparent',
+          borderRightColor: resolvedBorderColor,
           borderBottomColor: 'transparent',
-          borderLeftColor: borderStyle
+          borderLeftColor: resolvedBorderColor
         };
         break;
       case 'classic':
@@ -210,22 +290,43 @@ useEffect(() => {
         //   borderBottomColor: bottomColor,
         //   borderLeftColor: leftColor,
         // };
-        borderconfig = { borderColor: borderStyle, borderWidth: '4px', borderStyle: 'solid' };
+        borderconfig = {
+          borderColor: resolvedBorderColor,
+          borderTopWidth: `${edgeWidths.top}px`,
+          borderBottomWidth: `${edgeWidths.bottom}px`,
+          borderLeftWidth: `${edgeWidths.left}px`,
+          borderRightWidth: `${edgeWidths.right}px`,
+          borderStyle: 'solid'
+        };
         break;
       case 'minimal':
-        borderconfig = { borderColor: borderStyle, borderWidth: '2px', borderStyle: 'solid' };
+        borderconfig = {
+          borderColor: resolvedBorderColor,
+          borderTopWidth: `${edgeWidths.top}px`,
+          borderBottomWidth: `${edgeWidths.bottom}px`,
+          borderLeftWidth: `${edgeWidths.left}px`,
+          borderRightWidth: `${edgeWidths.right}px`,
+          borderStyle: 'solid'
+        };
         break;
       case 'creative':
-        borderconfig = { borderColor: borderStyle, borderWidth: '2px', borderStyle: 'dashed' };
+        borderconfig = {
+          borderColor: resolvedBorderColor,
+          borderTopWidth: `${edgeWidths.top}px`,
+          borderBottomWidth: `${edgeWidths.bottom}px`,
+          borderLeftWidth: `${edgeWidths.left}px`,
+          borderRightWidth: `${edgeWidths.right}px`,
+          borderStyle: 'dashed'
+        };
         break;
       default:
-        borderconfig = { borderColor: borderStyle, borderWidth: '0px', borderStyle: 'solid' };
+        borderconfig = { borderColor: resolvedBorderColor, borderWidth: '0px', borderStyle: 'solid' };
       }
     return borderconfig;
     }
   }
   const getFontClass = () => {
-    switch (formData.fontStyle) {
+    switch (effectiveData.fontStyle) {
       case 'serif':
         return 'font-serif';
       case 'mono':
@@ -235,12 +336,12 @@ useEffect(() => {
     }
   };
   const getBackgroundStyle = () => {
-    switch (backgroundStyle[0]){
+    const activeBackground = effectiveData.backgroundStyle || ['color', '#f0f0f0'];
+    switch (activeBackground[0]){
       case 'image':
-        console.log("Image background style:", backgroundStyle);
-        return { backgroundImage: `url(${backgroundStyle[1]})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+        return { backgroundImage: `url(${activeBackground[1]})`, backgroundSize: 'cover', backgroundPosition: 'center' };
       case 'color':
-        return { backgroundColor: backgroundStyle[1] };
+        return { backgroundColor: activeBackground[1] || '#f0f0f0' };
       default:
         return { backgroundColor: '#f0f0f0' };
     }
@@ -282,9 +383,38 @@ END:VCARD`;
     }
   }
 
+  const baseBackgroundStyle = getBackgroundStyle();
+  const rotationIntensity = Math.min(1.9, (Math.abs(rotationY) / 14) + (Math.abs(rotationZ) / 50) * 0.7);
+  const highlightAngle = 122 - rotationY * 3.1;
+  const specularOpacity = 0.22 + rotationIntensity * 0.22;
+  const shadowOpacity = 0.2 + rotationIntensity * 0.18;
+  const edgeGlowOpacity = 0.18 + rotationIntensity * 0.16;
+  const specularOverlay = `linear-gradient(${highlightAngle}deg, rgba(255,255,255,${specularOpacity}) 0%, rgba(255,255,255,0.18) 20%, rgba(229,236,245,0.08) 42%, rgba(255,255,255,0.2) 61%, rgba(255,255,255,0.06) 100%)`;
+  const depthOverlay = `linear-gradient(${highlightAngle + 18}deg, rgba(18,24,34,${shadowOpacity}) 0%, rgba(15,18,24,0.02) 34%, rgba(10,12,16,${shadowOpacity * 0.9}) 100%)`;
+  const edgeSheenOverlay = `radial-gradient(circle at ${58 + rotationY * 0.75}% ${34 - rotationY * 0.35}%, rgba(255,255,255,${edgeGlowOpacity}) 0%, rgba(255,255,255,0.04) 28%, rgba(255,255,255,0) 62%)`;
+  const cardBackgroundWithLight: React.CSSProperties =
+    "backgroundImage" in baseBackgroundStyle && baseBackgroundStyle.backgroundImage
+      ? {
+          ...baseBackgroundStyle,
+          backgroundImage: `${specularOverlay}, ${depthOverlay}, ${edgeSheenOverlay}, ${baseBackgroundStyle.backgroundImage}`,
+          backgroundBlendMode: "screen, multiply, overlay, normal",
+        }
+      : {
+          ...baseBackgroundStyle,
+          backgroundImage: `${specularOverlay}, ${depthOverlay}, ${edgeSheenOverlay}`,
+          backgroundBlendMode: "screen, multiply, overlay",
+        };
+  const cardShadow = `${rotationY * 1.25}px ${18 + rotationIntensity * 18}px ${36 + rotationIntensity * 36}px rgba(0,0,0,${0.34 + rotationIntensity * 0.26}), ${rotationY * -0.75}px ${10 + rotationIntensity * 10}px ${22 + rotationIntensity * 20}px rgba(113,145,105,${0.14 + rotationIntensity * 0.13}), 0 0 ${22 + rotationIntensity * 26}px rgba(248,250,255,${0.16 + rotationIntensity * 0.16}), inset 0 0 ${10 + rotationIntensity * 10}px rgba(255,255,255,${0.12 + rotationIntensity * 0.12})`;
+  const metallicSurfaceOverlay = `linear-gradient(${highlightAngle + 8}deg, rgba(255,255,255,${0.14 + rotationIntensity * 0.12}) 0%, rgba(255,255,255,0.02) 28%, rgba(0,0,0,${0.08 + rotationIntensity * 0.08}) 100%), radial-gradient(circle at ${56 + rotationY * 0.9}% ${42 - rotationY * 0.45}%, rgba(255,255,255,${0.22 + rotationIntensity * 0.18}) 0%, rgba(255,255,255,0.04) 33%, rgba(255,255,255,0) 68%)`;
+  const edgeWidths = getEdgeWidths();
+  const borderLeftRim = edgeWidths.left;
+  const borderRightRim = edgeWidths.right;
+  const borderTopRim = edgeWidths.top;
+  const borderBottomRim = edgeWidths.bottom;
+
   return (
     <main 
-      className="flex flex-col items-center max-p-10 p-5 sm:p-10 md:p-10 justify-center w-full h-full min-h-fit gap-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black min-gap-4" 
+      className="relative overflow-hidden flex flex-col items-center max-p-10 p-5 sm:p-10 md:p-10 justify-center w-full h-full min-h-fit gap-4 bg-gradient-to-br from-gray-900 via-gray-800 to-black min-gap-4" 
       style={{ perspective: '1000px' }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -296,12 +426,14 @@ END:VCARD`;
         {/* Business Cards*/}
         <div 
           ref={cardRef}
-          className={`print-card ${getStyleClasses()} max-w-[500px] max-h-[285px] aspect-[500/285] justify-center items-center h-fit w-full p-2 bg-green-600`}
+          className={`print-card ${getStyleClasses()} relative overflow-hidden max-w-[500px] max-h-[285px] aspect-[500/285] justify-center items-center h-fit w-full p-2`}
           style={{
             transform: `rotateY(${rotationY}deg) rotateZ(${rotationZ}deg)`,
             transformOrigin: 'center center center',
             userSelect: 'none', // Prevent text selection while dragging
-            ...getBackgroundStyle(),
+            boxShadow: cardShadow,
+            filter: `saturate(${1.04 + rotationIntensity * 0.2}) contrast(${1.08 + rotationIntensity * 0.12})`,
+            ...cardBackgroundWithLight,
             ...getBorderStyle(),
           }}
           onMouseDown={handleMouseDown}
@@ -323,11 +455,12 @@ END:VCARD`;
             />
           </div>
           {/* Text Section */}
-          <div className="flex flex-col w-full h-fit justify-center items-center gap-1 text-gray-900 p-4 "
+          <div className={`flex flex-col w-full h-fit justify-center items-center gap-1 p-4 ${getFontClass()}`}
           style={{
             transform: `rotateZ(${-rotationZ}deg)`,
             transformOrigin: 'center center center',
             userSelect: 'none', // Prevent text selection while dragging
+            color: activeScheme.text,
           }}
           >
           {/* Display the data */}
@@ -375,27 +508,73 @@ END:VCARD`;
           }}
           >
           
-          {data.qrCodeSVG && (
+          {effectiveData.qrCodeSVG && (
             // <div
             //   className="w-fit h-fit flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:max-w-full [&>svg]:max-h-full"
-            //   dangerouslySetInnerHTML={{ __html: data.qrCodeSVG }}
+            //   dangerouslySetInnerHTML={{ __html: effectiveData.qrCodeSVG }}
             // />
-            <img src={`data:image/svg+xml;utf8,${encodeURIComponent(data.qrCodeSVG)}`} alt="QR Code" />
+            <img src={`data:image/svg+xml;utf8,${encodeURIComponent(effectiveData.qrCodeSVG)}`} alt="QR Code" />
           )}
           </div>
+
+          {!isExporting ? (
+            <>
+              <div
+                className="pointer-events-none absolute inset-0 z-20"
+                style={{
+                  backgroundImage: metallicSurfaceOverlay,
+                  mixBlendMode: "soft-light",
+                  opacity: 0.95,
+                }}
+              />
+
+              <div
+                className="pointer-events-none absolute inset-0 z-30"
+                style={{
+                  borderTop: `${borderTopRim}px solid rgba(255,255,255,${0.34 + rotationIntensity * 0.16})`,
+                  borderBottom: `${borderBottomRim}px solid rgba(0,0,0,${0.26 + rotationIntensity * 0.12})`,
+                  borderLeft: `${borderLeftRim}px solid rgba(255,255,255,${0.46 + rotationIntensity * 0.16})`,
+                  borderRight: `${borderRightRim}px solid rgba(0,0,0,${0.34 + rotationIntensity * 0.18})`,
+                  boxShadow: `inset ${normalizedTilt * -2.5}px 0 ${8 + rotationIntensity * 8}px rgba(255,255,255,${0.18 + rotationIntensity * 0.1}), inset ${normalizedTilt * 2.5}px 0 ${9 + rotationIntensity * 10}px rgba(0,0,0,${0.18 + rotationIntensity * 0.14})`,
+                  mixBlendMode: "overlay",
+                  borderRadius: "inherit",
+                  opacity: resolvedBorderColor ? 0.95 : 0,
+                }}
+              />
+            </>
+          ) : null}
         </div>
       </div>
       {/* ButtonsObjects */}
-      <div className="w-full flex flex-row justify-evenly gap-4 no-print absolute bottom-2 left-0">
-        <Button variant="outline" className="w-1/4" onClick={handleCardReset}>Reset Position</Button>
-        <Button variant="outline" className={`w-1/4 ${isPreviewRender ? 'hidden' : ''}`} onClick={handleDownloadImage}>Download Image</Button>
-        <Button
-              className="w-1/4 h-full min-w-fit"
-              onClick={handleGenerateQRCode}
-              disabled={isGeneratingQR}
-              variant="outline"
-            >Generate QR</Button>
-        <Button variant="outline" className={`w-1/4`} onClick={handleRotateImage}>Rotate</Button>
+      <div className="w-full no-print absolute bottom-2 left-0 px-3 space-y-2">
+        <div className="rounded-md border border-white/20 bg-black/25 px-3 py-2 backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-2 text-[10px] sm:text-xs text-neutral-200">
+            <span>Tilt</span>
+            <span>{rotationY.toFixed(0)}°</span>
+          </div>
+          <input
+            type="range"
+            min={-20}
+            max={20}
+            step={0.5}
+            value={rotationY}
+            onChange={handleSliderRotate}
+            className="mt-1 h-1.5 w-full cursor-pointer accent-[#719169]"
+            aria-label="Rotate card side to side"
+          />
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          <Button variant="outline" className="w-full text-xs sm:text-sm" onClick={handleCardReset}>Reset Position</Button>
+          <Button
+                className="w-full h-full min-w-0 text-xs sm:text-sm"
+                onClick={handleGenerateQRCode}
+                disabled={isGeneratingQR}
+                variant="outline"
+              >Generate QR</Button>
+          <Button variant="outline" className="w-full text-xs sm:text-sm" onClick={handleRotateImage}>Rotate</Button>
+          <Button variant="outline" className="w-full text-xs sm:text-sm" onClick={handleDownloadImage}>Export</Button>
+        </div>
       </div>
     </main>
   );

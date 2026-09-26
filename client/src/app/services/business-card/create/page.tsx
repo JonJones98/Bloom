@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { useBusinessCardForm } from "@/contexts/business-card-form-context";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { buttonVariants } from "@/contexts/buttonVariants";
 
 const styleOptions = {
   cardStyle: [
@@ -28,49 +27,42 @@ const styleOptions = {
 };
 
 export default function Home() {
-  // State to hold form data
-const { 
+const {
     formData,
     updateFormData
   } = useBusinessCardForm();
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
-  const [currentStep, setCurrentStep] = useState('content');
   const router = useRouter();
   console.log(formData);
 
   const handleCreateCard = () => {
-    // Logic to handle business card creation can be added here
-    if (currentStep === 'content') setCurrentStep('styling');
-    else if (currentStep === 'styling'){
-      // Save business card data to API
-      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-      fetch(`${baseUrl}/db/business_card/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          type: "business-card",
-          content: { ...formData }
-        }),
-      })
-      .then(res => {
-        if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        console.log('Backend response:', data);
-        alert("Business Card Created!");
-        router.push('/services/business-card/render?id=' + data.id);
-      })
-      .catch(error => {
-        console.error('Fetch error details:', error);
-        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-          alert(`Cannot connect to server at ${baseUrl}. Please check if your backend server is running.`);
-        } else {
-          alert(`Error saving business card: ${error.message}`);
-        }
-      });
-    }
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    fetch(`${baseUrl}/db/business_card/add`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: formData.name,
+        type: "business-card",
+        content: { ...formData }
+      }),
+    })
+    .then(res => {
+      if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
+      return res.json();
+    })
+    .then(data => {
+      console.log('Backend response:', data);
+      alert("Business Card Created!");
+      router.push('/services/business-card/render?id=' + data.id);
+    })
+    .catch(error => {
+      console.error('Fetch error details:', error);
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        alert(`Cannot connect to server at ${baseUrl}. Please check if your backend server is running.`);
+      } else {
+        alert(`Error saving business card: ${error.message}`);
+      }
+    });
   };
   const handleGenerateQRCode = async () => {
     setIsGeneratingQR(true);
@@ -109,12 +101,15 @@ END:VCARD`;
     }
   }
   return (
-    <main className="flex flex-col lg:flex-row sm:flex-col md:flex-col items-start justify-start px-10 py-5 h-full w-full gap-10 bg-neutral-100">
-      {/* Preview Section */}
-      <div className="w-full p-6 bg-neutral-00 rounded-lg shadow-xl flex flex-col h-full max-h-full min-h-[100%] bg-white gap-2">
-        <h2 className="text-2xl font-semibold mb-4">Business Card Preview</h2>
-        <div className=" rounded-md flex-1 items-center justify-center flex">
-          <Preview_Business_Card data={{
+    <main className="h-full w-full bg-gradient-to-br from-[#719169]/15 via-white to-[#719169]/5 p-4 lg:p-6 overflow-hidden flex flex-col">
+      <h1 className="text-3xl font-bold mb-2 text-[#719169]">Business Card</h1>
+
+      <div className="w-full rounded-lg p-0 shadow-lg flex-1 min-h-0">
+        <div className="rounded-lg border-[3px] border-[#719169] bg-gradient-to-br from-gray-900 via-gray-800 to-black p-3 h-full shadow-[0_0_0_2px_rgba(113,145,105,0.2)]">
+          <div className="flex flex-col lg:flex-row gap-3 h-full">
+            <div className="w-full flex flex-col rounded-md bg-transparent">
+              <div className="flex-1 flex items-center justify-center">
+                <Preview_Business_Card data={{
     name: formData.name || "John Doe",
     email: formData.email || "john.doe@example.com",
     title: formData.title || "Software Engineer",
@@ -130,248 +125,116 @@ END:VCARD`;
     backgroundStyle: formData.backgroundStyle,
     borderStyle: formData.borderStyle,
   }} />
+              </div>
+
+            </div>
+
+            <div className="w-full lg:w-[320px] rounded-md border border-[#719169] bg-[#ececec] p-3 h-full overflow-y-auto">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-semibold">Styles</p>
+              </div>
+
+              <div className="pb-2 border-b border-black/20">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold">Presets</p>
+                  <span className="text-xl leading-none">+</span>
+                </div>
+                <select
+                  className="mt-2 w-full border rounded-md p-2 text-xs bg-white"
+                  value={formData.cardStyle}
+                  onChange={(e) => updateFormData('cardStyle', e.target.value)}
+                >
+                  {styleOptions.cardStyle.map((style) => (
+                    <option key={style.value} value={style.value}>{style.label}</option>
+                  ))}
+                </select>
+                <select
+                  className="mt-2 w-full border rounded-md p-2 text-xs bg-white"
+                  value={formData.colorScheme}
+                  onChange={(e) => updateFormData('colorScheme', e.target.value)}
+                >
+                  {styleOptions.colorScheme.map((scheme) => (
+                    <option key={scheme.value} value={scheme.value}>{scheme.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-3 pb-2 border-b border-black/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">Typography</p>
+                  <span className="text-xl leading-none">+</span>
+                </div>
+                <select
+                  className="w-full border rounded-md p-1.5 text-xs bg-white"
+                  value={formData.fontStyle}
+                  onChange={(e) => updateFormData('fontStyle', e.target.value)}
+                >
+                  {styleOptions.fontStyle.map((font) => (
+                    <option key={font.value} value={font.value}>{font.label}</option>
+                  ))}
+                </select>
+                <div>
+                  <label className="text-xs">Font</label>
+                  <input className="w-full border rounded-md p-1.5 text-xs bg-white" value={formData.fontStyle === 'sans' ? 'Inter' : formData.fontStyle === 'serif' ? 'Serif' : 'Monospace'} readOnly />
+                </div>
+                <div>
+                  <label className="text-xs">Weight</label>
+                  <input className="w-full border rounded-md p-1.5 text-xs bg-white" value="Regular" readOnly />
+                </div>
+                <div>
+                  <label className="text-xs">Size</label>
+                  <input className="w-full border rounded-md p-1.5 text-xs bg-white" value="10" readOnly />
+                </div>
+                <div>
+                  <label className="text-xs">Border Color</label>
+                  <div className="mt-1 flex items-center gap-1 border rounded-md p-1.5 bg-white">
+                    <input
+                      type="color"
+                      className="h-4 w-4"
+                      value={formData.borderStyle || '#000000'}
+                      onChange={(e) => updateFormData('borderStyle', e.target.value)}
+                    />
+                    <input className="w-full text-xs outline-none" value={(formData.borderStyle || '#000000').replace('#', '').toUpperCase()} readOnly />
+                    <span className="text-xs border-l pl-1">100%</span>
+                    <span className="text-xs">◉</span>
+                    <span className="text-xs">−</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 pb-2 border-b border-black/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">Background</p>
+                  <span className="text-xl leading-none">+</span>
+                </div>
+                <div>
+                  <label className="text-xs">Fill</label>
+                  <div className="mt-1 flex items-center gap-1 border rounded-md p-1.5 bg-white">
+                    <input
+                      type="color"
+                      className="h-4 w-4"
+                      value={formData.backgroundStyle?.[1] || '#f0f0f0'}
+                      onChange={(e) => updateFormData('backgroundStyle', ["color", e.target.value])}
+                    />
+                    <input className="w-full text-xs outline-none" value={(formData.backgroundStyle?.[1] || '#f0f0f0').replace('#', '').toUpperCase()} readOnly />
+                    <span className="text-xs border-l pl-1">100%</span>
+                    <span className="text-xs">◉</span>
+                    <span className="text-xs">−</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">Border</p>
+                  <span className="text-xl leading-none">+</span>
+                </div>
+                <Button type="button" className="w-full mt-3" onClick={handleCreateCard}>Save Business Card</Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      
-        {/* Content Section */}
-        {currentStep == 'contents' && (
-      <div className="w-full p-6 bg-white rounded-lg shadow-xl flex flex-col h-full max-h-full min-w-fit">
-        <h2 className="text-2xl font-semibold mb-4">
-          Create Your Business Card
-        </h2>
-        <form className="space-y-4 overflow-auto flex-1">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Full Name
-            </label>
-            <input
-              type="text"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              placeholder="John Doe"
-              value={formData.name}
-              onChange={(e) => updateFormData("name", e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email Address
-            </label>
-            <input
-              type="email"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              placeholder="john.doe@example.com"
-              value={formData.email}
-              onChange={(e) => updateFormData("email", e.target.value)}
-              required
-              pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Title
-            </label>
-            <input
-              type="text"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              placeholder="Software Engineer"
-              value={formData.title}
-              onChange={(e) => updateFormData("title", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Company
-            </label>
-            <input
-              type="text"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              placeholder="Your Company Name"
-              value={formData.company}
-              onChange={(e) => updateFormData("company", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-              placeholder="(XXX) XXX-XXXX"
-              value={formData.phone}
-              onChange={(e) => updateFormData("phone", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Link
-            </label>
-            <div className="flex flex-row mt-1 w-full h-fit border border-gray-300 rounded-md shadow-sm justify-between">
-              <input
-              type="text"
-              className=" w-full pl-2"
-              placeholder="https://your-link.com"
-              value={formData.link}
-              onChange={(e) => updateFormData("link", e.target.value)}
-            />
-            <Button
-              className="w-1/4 h-full min-w-fit"
-              onClick={handleGenerateQRCode}
-              disabled={isGeneratingQR}
-              variant="outline"
-            >
-              {isGeneratingQR ? "Generating QR Code..." : "Generate QR Code"}
-            </Button>
-            </div>
-            
-          </div>
-          <div className="flex flex-row w-full justify-evenly">
-
-            <Button className="w-full mt-4" onClick={handleCreateCard}>
-              Styling Business Card
-            </Button>
-          </div>
-        </form>
-      </div>
-        )}
-        {/* Styling Section */}
-        {currentStep == 'stylings' && (
-      <div className="w-full p-6 bg-white rounded-lg shadow-xl flex flex-col h-full max-h-full">
-        <div className="flex flex-row justify-between items-center h-fit">
-        <h2 className="text-2xl font-semibold mb-4">
-          Style Your Business Card
-        </h2>
-        <Button variant={"outline"} className="w-fit" onClick={()=> {setCurrentStep('content')}}>
-              Back to Content
-            </Button>
-            </div>
-        <form className="space-y-4 overflow-auto flex-1">
-          <div>
-                  <label className="block text-lg font-medium text-gray-700 mb-4">Card Style</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    {styleOptions.cardStyle.map((style) => (
-                      <div
-                        key={style.value}
-                        className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                          formData.cardStyle === style.value
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => updateFormData('cardStyle', style.value)}
-                      >
-                        <h3 className="font-semibold text-gray-800">{style.label}</h3>
-                        <p className="text-sm text-gray-600">{style.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-{/* Color Scheme */}
-                <div>
-                  <label className="block text-lg font-medium text-gray-700 mb-4"> Background Color Scheme</label>
-                  <div className="grid grid-cols-1 gap-3">
-                      <div
-                        className={`flex items-center gap-3  cursor-pointer transition-all`}
-                      >
-                        <input
-                          type="color"
-                          value={formData.backgroundStyle[1]}
-                          onChange={(e) =>  updateFormData('backgroundStyle', ["color", e.target.value])}
-                          
-                          className={`h-full w-full border-2 rounded-lg cursor-pointer transition-all ${
-                          formData.backgroundStyle[0] === 'color'
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          id="background-image-input"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                updateFormData('backgroundStyle', ["image", reader.result as string]);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          className={`p-4 w-full border-2 rounded-lg cursor-pointer transition-all ${
-                          formData.backgroundStyle[0] === 'image'
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        />
-                      </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-lg font-medium text-gray-700 mb-4"> Border Color Scheme</label>
-                  <div className="grid grid-cols-1 gap-3">
-                      <div
-                        className={`flex items-center gap-3 cursor-pointer transition-all`}
-                      >
-                        <input
-                          type="color"
-                          className={`h-full w-full border-2 rounded-lg cursor-pointer transition-all ${
-                          formData.borderStyle !== ''
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                          value={formData.borderStyle}
-                          onChange={(e) =>  updateFormData('borderStyle', e.target.value)}
-                        />
-                        <input
-                          id="no-border-checkbox"
-                          type="button"
-                          className={`p-4 w-full border-2 rounded-lg cursor-pointer transition-all ${
-                          formData.borderStyle === ''
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                          value={"No Border"}
-                          checked={formData.borderStyle === ''}
-                          onClick={() => updateFormData('borderStyle', '')}
-                        />
-                      </div>
-                  </div>
-                </div>
-                {/* Font Style */}
-                <div>
-                  <label className="block text-lg font-medium text-gray-700 mb-4">Font Style</label>
-                  <div className="grid grid-cols-1 gap-3">
-                    {styleOptions.fontStyle.map((font) => (
-                      <div
-                        key={font.value}
-                        className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                          formData.fontStyle === font.value
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => updateFormData('fontStyle', font.value)}
-                      >
-                        <h3 className={`font-semibold text-gray-800 ${
-                          font.value === 'serif' ? 'font-serif' : 
-                          font.value === 'mono' ? 'font-mono' : 'font-sans'
-                        }`}>{font.label}</h3>
-                        <p className="text-sm text-gray-600">{font.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <label className="block text-lg font-medium text-gray-700 mb-4">Font Size</label>
-                  <div className="grid grid-cols-1 gap-3">
-                  </div>
-                </div>
-          <div className="flex flex-row w-full justify-evenly">
-            <Button className="w-full" onClick={handleCreateCard}>
-              Save Business Card
-            </Button>
-          </div>
-        </form>
-      </div>
-        )}
-    </main> 
+    </main>
   );
 }

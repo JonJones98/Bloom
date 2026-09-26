@@ -323,6 +323,7 @@ def get_resume(resume_data: ResumeUpdateRequest):
 def add_resume(resume_data: ResumeCreateRequest):
     # Define add_user_to_db function here or import it from models.Wanda_DB_Mongo
     random_id = uuid.uuid4()
+    resume_id = "resume_" + str(random_id)
     try:
         if Resumes.find_one({"name": resume_data.name}):
             return {"status": f"Resume with name {resume_data.name} already exists."}
@@ -330,11 +331,11 @@ def add_resume(resume_data: ResumeCreateRequest):
             "name": resume_data.name,
             "type": resume_data.type,
             "content": resume_data.content,
-            "id": "resume_"+str(random_id),
+            "id": resume_id,
             "dateCreated": datetime.datetime.now(), 
             "dateUpdated": datetime.datetime.now()
         })
-        return {"status": f"Added resume to database: {resume_data.name}"}
+        return {"status": f"Added resume to database: {resume_data.name}", "id": resume_id}
     except Exception as e:
         return {"status": f"Failed to add resume to database: {e}"}
 @app.delete("/db/resume/delete")
